@@ -60,6 +60,9 @@ export function createGlassMaterial() {
         // Soft-clip reflections so a light's highlight stays a sheen on the
         // glass instead of a blown-out flare picked up by the bloom pass.
         vec3 sheen = outgoingLight / (1.0 + outgoingLight * 1.4);
+        // face-on reflections of the bright studio read as grey haze over the
+        // dark chamber: keep them faint and let the rims carry the reflection
+        sheen *= mix(0.2, 1.0, smoothstep(0.0, 0.5, fresnel));
         gl_FragColor = vec4(sheen + glow, alpha);`,
       );
   };
@@ -67,15 +70,17 @@ export function createGlassMaterial() {
 }
 
 /**
- * Inner face of the dome: neutral smoked attenuation of whatever lies
- * behind the head, so the chamber reads deep and dark from any angle while
- * the glass stays colourless. Rendered in the opaque pass, after the shells
- * and before the brain (which draws over it).
+ * Smoked tint of the dome: darkens everything already drawn behind the
+ * glass, so the chamber reads deep and dark from any angle while the glass
+ * stays colourless. It uses the dome's front faces, so parts sitting between
+ * the front and back of the dome (the face plate's inner lip at the dip)
+ * are smoked too. Rendered after the shells and before the brain (which
+ * draws over it).
  */
 export function createGlassInteriorMaterial() {
   return new THREE.MeshBasicMaterial({
     color: 0x030a2e,
-    side: THREE.BackSide,
+    side: THREE.FrontSide,
     depthWrite: false,
     blending: THREE.CustomBlending,
     blendSrc: THREE.ConstantAlphaFactor,

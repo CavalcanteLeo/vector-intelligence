@@ -96,9 +96,15 @@ def build_cavity_floor(seams, material, parent):
             c2 = (c + 1) % count
             faces.append((a + c, b + c, b + c2, a + c2))
     surface = HEAD.point(TOP.direction(points))
-    t = np.linalg.norm(points - centre, axis=1) / np.linalg.norm(rim - centre, axis=1).mean()
+    t = np.clip(np.linalg.norm(points - centre, axis=1) / np.linalg.norm(rim - centre, axis=1).mean(), 0, 1)
     xy = surface[:, :2] * 0.955
-    z = FLOOR_HEIGHT + 0.025 * (1 - np.clip(t, 0, 1) ** 2)
+    # follow the glass junction at the rim (it dips low over the face) and
+    # rise smoothly to a gentle crown, so no flat shelf shows through the glass
+    rim_z = dome_height(azimuth(TOP.direction(points))) - 0.02
+    # stay above the open upper eyelids (they sit behind the face plate)
+    over_eyes = np.clip((np.abs(xy[:, 0]) - 0.05) / 0.08, 0, 1)
+    rim_z = np.maximum(rim_z, FLOOR_HEIGHT * over_eyes + rim_z * (1 - over_eyes))
+    z = rim_z * t ** 2 + (FLOOR_HEIGHT + 0.025) * (1 - t ** 2)
     verts = np.column_stack([xy, z])
     normals = np.tile([0.0, 0.0, 1.0], (len(verts), 1))
     return create_object("CavityFloor", verts, faces, material, parent, normals=normals)
@@ -118,7 +124,9 @@ def build_head(materials, parent):
           spacing=0.035).build("JawShell", materials["Graphite"], parent)
     # Inner graphite core: visible only through panel gaps; rises to the cavity floor.
     theta = np.linspace(-np.pi, np.pi, 280, endpoint=False)
-    core_top = np.maximum(dome_height(theta) + 0.03, FLOOR_HEIGHT + 0.012)
+    # rise over the eyes (like the cavity floor) so the open eyelids never show
+    over_eyes = np.clip((np.abs(theta) - 0.04) / 0.08, 0, 1)
+    core_top = np.maximum(dome_height(theta) + 0.03, (FLOOR_HEIGHT + 0.012) * over_eyes)
     core_rim = BOTTOM.uv(HEAD.direction_at_height(theta, core_top))
     Panel(HEAD, BOTTOM, core_rim, eye_holes(seams, BOTTOM, 0.12), offset=-0.016, lip=0.0,
           spacing=0.05).build("HeadCore", materials["Cavity"], parent)

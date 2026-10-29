@@ -14,7 +14,7 @@ import numpy as np
 from mathutils import Vector, noise
 
 CENTRE = np.array([0.0, 0.03, 1.28])
-RADII = np.array([0.37, 0.66, 0.345])
+RADII = np.array([0.52, 0.66, 0.345])  # wide lobes fill the dome sideways (>=3 cm clear of the glass)
 MEDIAL_GAP = 0.014
 GYRI_FREQUENCY = 3.4
 GYRI_BANDS = 2.6

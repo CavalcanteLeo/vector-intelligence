@@ -31,6 +31,7 @@ export function createEyeMaterial({ irisCenter, irisRadius, side }: EyeOptions) 
     uTime: { value: 0 },
     uIrisScale: { value: 1 },
     uDizzy: { value: 0 },
+    uAngry: { value: 0 },
     uGlints: { value: GLINTS.map(() => new THREE.Vector3(0, 0, 1)) },
   };
   const material = new THREE.MeshPhysicalMaterial({
@@ -56,6 +57,7 @@ export function createEyeMaterial({ irisCenter, irisRadius, side }: EyeOptions) 
         uniform float uTime;
         uniform float uIrisScale;
         uniform float uDizzy;
+        uniform float uAngry;
         uniform vec3 uGlints[${GLINTS.length}];
         float glint(vec3 surfaceNormal, vec3 direction, float size) {
           vec3 target = normalize((viewMatrix * vec4(direction, 0.0)).xyz);
@@ -78,6 +80,10 @@ export function createEyeMaterial({ irisCenter, irisRadius, side }: EyeOptions) 
           vec3 hot = vec3(0.35, 1.25, 2.0) * (1.0 + 0.12 * sin(uTime * 2.1));
           vec3 mid = vec3(0.04, 0.55, 1.45);
           vec3 deep = vec3(0.01, 0.12, 0.6);
+          // angry: the iris heats up to red-orange
+          hot = mix(hot, vec3(2.2, 0.55, 0.25), uAngry);
+          mid = mix(mid, vec3(1.5, 0.12, 0.06), uAngry);
+          deep = mix(deep, vec3(0.5, 0.02, 0.02), uAngry);
           vec3 iris = mix(hot, mid, smoothstep(0.05, 0.55, r));
           iris = mix(iris, deep, smoothstep(0.6, 1.0, r));
           iris *= 0.93 + 0.07 * sin(angle * 23.0 + r * 7.0) * smoothstep(0.3, 0.7, r);

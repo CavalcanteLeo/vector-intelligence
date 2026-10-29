@@ -14,6 +14,7 @@ SPECS = {
     "EyeLid": dict(color=(0.80, 0.82, 0.86), roughness=0.32),
     "Mouth": dict(color=(0.02, 0.025, 0.035), roughness=0.3),
     "Logo": dict(color=(0.04, 0.35, 0.95), roughness=0.3),
+    "LogoMark": dict(color=(0.04, 0.35, 0.95), roughness=0.3),
     "Brain": dict(color=(0.02, 0.08, 0.35), emission=(0.05, 0.3, 1), strength=0.6),
 }
 

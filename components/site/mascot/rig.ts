@@ -26,7 +26,7 @@ export function createRig(root: THREE.Object3D, model: MascotModel, pointer: Poi
   const idle = createIdle();
   const restY = root.position.y;
 
-  function update(delta: number, camera: THREE.Camera, canvas: HTMLElement, { happy, curious, sad, surprise, dizzy }: Expression, motion: boolean) {
+  function update(delta: number, camera: THREE.Camera, canvas: HTMLElement, { happy, curious, sad, surprise, dizzy, angry }: Expression, motion: boolean) {
     const { state } = pointer;
     const rect = canvas.getBoundingClientRect();
     model.head.getWorldPosition(headScreen).setY(headScreen.y + 0.75).project(camera);
@@ -59,8 +59,9 @@ export function createRig(root: THREE.Object3D, model: MascotModel, pointer: Poi
     const wobble = motion ? dizzy * Math.min(1, dizzy * 3) : 0;
     const t = performance.now() / 1000;
     headEuler.set(
-      clamp(-gaze.y * 0.2, -0.16, 0.2) + curious * 0.06 + sad * 0.09 - surprise * 0.12 + wobble * 0.04 * Math.sin(t * 3.7) + (pose?.headPitch ?? 0),
-      gaze.x * 0.34 + (pose?.headYaw ?? 0),
+      clamp(-gaze.y * 0.2, -0.16, 0.2) + curious * 0.06 + sad * 0.09 - surprise * 0.12 + angry * 0.05 + wobble * 0.04 * Math.sin(t * 3.7) + (pose?.headPitch ?? 0),
+      // angry: shake the head "no" (fast, fading out)
+      gaze.x * 0.34 + (pose?.headYaw ?? 0) + (motion ? angry * angry * 0.16 * Math.sin(t * 15) : 0),
       gaze.x * -0.03 + (happy * 0.06 + curious * 0.2) * Math.sign(gaze.x || 1) + wobble * 0.09 * Math.sin(t * 5.5)
         + (pose?.headRoll ?? 0),
     );

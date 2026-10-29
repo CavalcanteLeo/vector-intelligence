@@ -18,6 +18,13 @@ def create_object(name, verts, faces, material, parent=None, normals=None, uv=No
         verts = verts @ inv[:3, :3].T + inv[:3, 3]
         if normals is not None:
             normals = np.asarray(normals) @ inv[:3, :3].T
+    # guard: an out-of-range index corrupts Blender's memory and crashes it
+    # later (in custom-normal setup) instead of raising a clear error
+    flat = [i for f in faces for i in f]
+    if flat and (min(flat) < 0 or max(flat) >= len(verts)):
+        raise ValueError(f"{name}: face index {max(flat)} out of range for {len(verts)} vertices")
+    if normals is not None and len(normals) != len(verts):
+        raise ValueError(f"{name}: {len(normals)} normals for {len(verts)} vertices")
     mesh = bpy.data.meshes.new(name)
     mesh.from_pydata(verts.tolist(), [], [list(map(int, f)) for f in faces])
     mesh.update()

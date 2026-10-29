@@ -7,17 +7,50 @@ import { createLightMaterial, createSurfaceMaterials } from "./materials/surface
 export type Lid = { mesh: THREE.Object3D; rest: THREE.Quaternion; blinkAngle: number; smileAngle: number };
 export type Eye = { uniforms: ReturnType<typeof createEyeMaterial>["uniforms"]; side: number };
 
+const HALO_FADE = 0.07;
+const point = new THREE.Vector3();
+
+/**
+ * Per-vertex halo strength: 1 along the strip, easing to 0 towards the two
+ * ends of an open strip, so the glow dissolves instead of being cut off.
+ * The ends are the farthest-apart vertices (the compressed export does not
+ * keep vertex order).
+ */
+function addHaloFade(geometry: THREE.BufferGeometry, open: boolean) {
+  const position = geometry.getAttribute("position");
+  const fade = new Float32Array(position.count).fill(1);
+  if (open) {
+    const farthest = (from: THREE.Vector3) => {
+      const best = new THREE.Vector3();
+      let far = -1;
+      for (let i = 0; i < position.count; i++) {
+        const d = point.fromBufferAttribute(position, i).distanceToSquared(from);
+        if (d > far) { far = d; best.copy(point); }
+      }
+      return best;
+    };
+    const a = farthest(new THREE.Vector3().fromBufferAttribute(position, 0));
+    const b = farthest(a);
+    for (let i = 0; i < position.count; i++) {
+      point.fromBufferAttribute(position, i);
+      fade[i] = THREE.MathUtils.smoothstep(Math.min(point.distanceTo(a), point.distanceTo(b)), 0, HALO_FADE);
+    }
+  }
+  geometry.setAttribute("aFade", new THREE.BufferAttribute(fade, 1));
+}
+
 /** Replace the Blender preview materials by name and collect the animated parts. */
-export function setupModel(model: THREE.Object3D, logo: THREE.Texture) {
+export function setupModel(model: THREE.Object3D, logos: { chest: THREE.Texture; mark: THREE.Texture }) {
   const surfaces = createSurfaceMaterials();
   const light = createLightMaterial();
   const glass = createGlassMaterial();
   const glassInterior = createGlassInteriorMaterial();
-  const logoMaterial = createLogoMaterial(logo);
+  const logoMaterial = createLogoMaterial(logos.chest);
+  const markMaterial = createLogoMaterial(logos.mark);
   const eyes: Eye[] = [];
   const lids: Lid[] = [];
   const hemispheres: THREE.Mesh[] = [];
-  const owned: THREE.Material[] = [...Object.values(surfaces), light.material, light.halo, glass.material, glassInterior, logoMaterial];
+  const owned: THREE.Material[] = [...Object.values(surfaces), light.material, light.halo, glass.material, glassInterior, logoMaterial, markMaterial];
   let mouth: THREE.Mesh | undefined;
 
   model.updateMatrixWorld(true);
@@ -33,11 +66,13 @@ export function setupModel(model: THREE.Object3D, logo: THREE.Texture) {
     else if (name === "EyeLid") object.material = surfaces.Ceramic;
     else if (name === "Light") {
       object.material = light.material;
+      addHaloFade(object.geometry, object.name.startsWith("EarLight")); // the other lights are closed rings
       const halo = new THREE.Mesh(object.geometry, light.halo);
       halo.renderOrder = 5;
       object.add(halo);
     }
     else if (name === "Logo") object.material = logoMaterial;
+    else if (name === "LogoMark") object.material = markMaterial;
     else if (name === "Glass") {
       object.material = glass.material;
       object.renderOrder = 10;
@@ -66,7 +101,8 @@ export function setupModel(model: THREE.Object3D, logo: THREE.Texture) {
     eyes, lids, mouth, hemispheres, glass, light,
     dispose() {
       owned.forEach((material) => material.dispose());
-      logo.dispose();
+      logos.chest.dispose();
+      logos.mark.dispose();
       model.traverse((object) => {
         if (object instanceof THREE.Mesh) object.geometry.dispose();
       });

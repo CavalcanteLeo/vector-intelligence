@@ -1,39 +1,41 @@
-"""Chest badge: a thin film hugging the front of the collar that carries
-the full Vector Intelligence logo (the runtime maps the brand SVG onto its UVs,
-u left→right, v bottom→top)."""
+"""Logo badges: thin films carrying the full Vector Intelligence logo on the
+dark chest (between the chest plates) and the logo mark alone, large, on the
+back of the head. The runtime maps the brand SVGs onto their UVs
+(u left->right as seen by the viewer, v bottom->top)."""
 import numpy as np
 
-from .body import COLLAR
 from .mesh_io import create_object, grid_faces
-from .surfaces import catmull_rom_open
+from .outlines import HEAD, TORSO
+from .surfaces import BACK, FRONT, project, surface_normal
 
-CENTER_HEIGHT = -0.255
-HEIGHT = 0.1
+CENTER_HEIGHT = -0.33
+WIDTH = 0.46
 ASPECT = 1725 / 270  # width / height of the full logo (SVG viewBox)
-LIFT = 0.0025  # distance above the collar surface
+CORE_OFFSET = -0.014  # the dark chest is the torso core, set under the shell
+LIFT = 0.003  # distance above it
+MARK_ASPECT = 860 / 470  # the mark's crop of the icon SVG (see logo-material.ts)
+MARK_HEIGHT = 0.86
+MARK_WIDTH = 0.5
+HEAD_OFFSET = 0.0  # the white side shell sits on the head surface
 
 
-def collar_radius(z):
-    """Collar outer radius at height z (outer flank of the revolved profile)."""
-    profile = catmull_rom_open(np.array(COLLAR), 400)
-    flank = profile[profile[:, 0] >= 0.43]
-    order = np.argsort(flank[:, 1])
-    return np.interp(z, flank[order, 1], flank[order, 0])
+def badge(name, chart, centre_z, width, offset, material, body, rows=12, cols=64,
+          surface=TORSO, aspect=ASPECT):
+    height = width / aspect
+    # left to right as seen from the badge's side (+x is on the viewer's left at the back)
+    x = np.linspace(-width / 2, width / 2, cols) * (1 if chart is FRONT else -1)
+    z = np.linspace(centre_z - height / 2, centre_z + height / 2, rows)
+    X, Z = np.meshgrid(x, z)
+    uv = project(surface, chart, np.stack([X, Z], -1).reshape(-1, 2))
+    normal = surface_normal(surface, chart, uv)
+    if (normal[:, 1].mean() < 0) != (chart is FRONT):
+        normal = -normal
+    points = surface.point(chart.direction(uv)) + normal * (offset + LIFT)
+    tex = np.stack(np.meshgrid(np.linspace(0, 1, cols), np.linspace(0, 1, rows)), -1).reshape(-1, 2)
+    return create_object(name, points, grid_faces(rows, cols), material, body, normals=normal, uv=tex)
 
 
-def build_badge(materials, head, body, rows=24, cols=48):
-    z = np.linspace(CENTER_HEIGHT - HEIGHT / 2, CENTER_HEIGHT + HEIGHT / 2, rows)
-    radius = collar_radius(z)
-    span = HEIGHT * ASPECT / 2 / radius.mean()
-    angle = -np.pi / 2 + np.linspace(-span, span, cols)  # front faces -Y
-    slope = np.gradient(radius, z)
-    r, a = radius[:, None], angle[None, :]
-    normal = np.stack([np.cos(a) * np.ones_like(r), np.sin(a) * np.ones_like(r),
-                       -slope[:, None] * np.ones_like(a)], -1)
-    normal /= np.linalg.norm(normal, axis=-1, keepdims=True)
-    points = np.stack([r * np.cos(a), r * np.sin(a), z[:, None] * np.ones_like(a)], -1)
-    points = points + normal * LIFT
-    u, v = np.meshgrid(np.linspace(0, 1, cols), np.linspace(0, 1, rows))
-    return create_object("ChestBadge", points.reshape(-1, 3), grid_faces(rows, cols),
-                         materials["Logo"], body, normals=normal.reshape(-1, 3),
-                         uv=np.stack([u, v], -1).reshape(-1, 2))
+def build_badge(materials, head, body):
+    badge("ChestBadge", FRONT, CENTER_HEIGHT, WIDTH, CORE_OFFSET, materials["Logo"], body)
+    badge("HeadBadge", BACK, MARK_HEIGHT, MARK_WIDTH, HEAD_OFFSET, materials["LogoMark"], head,
+          rows=32, cols=56, surface=HEAD, aspect=MARK_ASPECT)

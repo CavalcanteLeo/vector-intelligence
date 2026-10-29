@@ -4,10 +4,10 @@ import { withMetalGrain } from "./metal-grain";
 /** Opaque shell materials, keyed by the material names authored in Blender. */
 export function createSurfaceMaterials() {
   return {
-    // satin metallic paint: soft grain under a smooth clear coat
-    Ceramic: withMetalGrain(new THREE.MeshPhysicalMaterial({
-      color: 0xf0f2f5, metalness: 0.15, roughness: 0.4, clearcoat: 0.55, clearcoatRoughness: 0.2, envMapIntensity: 0.9,
-    }), { bump: 0.15, roughness: 0.3, tone: 0.04, flakes: 0 }),
+    // smooth satin ceramic, light grey like the reference art
+    Ceramic: new THREE.MeshPhysicalMaterial({
+      color: 0xe1e4e9, roughness: 0.42, clearcoat: 0.35, clearcoatRoughness: 0.3, envMapIntensity: 0.85,
+    }),
     // gunmetal: cast-metal grain, speckled roughness, soft tone variation
     Graphite: withMetalGrain(new THREE.MeshPhysicalMaterial({
       color: 0x2c3038, metalness: 0.85, roughness: 0.34, clearcoat: 0.25, clearcoatRoughness: 0.3,
@@ -19,11 +19,13 @@ export function createSurfaceMaterials() {
     Titanium: withMetalGrain(new THREE.MeshPhysicalMaterial({
       color: 0xaab2bd, metalness: 1, roughness: 0.32, envMapIntensity: 1.2,
     }), { bump: 0.15, roughness: 0.45, tone: 0.1, flakes: 0 }),
-    // inner chamber (core + floor): double-sided so the cavity is closed from inside
-    Cavity: new THREE.MeshStandardMaterial({
-      color: 0x04060c, roughness: 0.7, metalness: 0, emissive: 0x1238c8, emissiveIntensity: 0.3,
-      envMapIntensity: 0.08, side: THREE.DoubleSide,
-    }),
+    // inner chamber (core + floor): the chest's grained gunmetal, darker and
+    // with weak reflections (the floor faces the key light), double-sided so
+    // the cavity is closed from inside
+    Cavity: withMetalGrain(new THREE.MeshPhysicalMaterial({
+      color: 0x030304, metalness: 0, roughness: 0.85, specularIntensity: 0.06, envMapIntensity: 0.06,
+      side: THREE.DoubleSide,
+    }), { bump: 0.3, roughness: 0.3, tone: 0.12, flakes: 0 }),
     Mouth: new THREE.MeshPhysicalMaterial({
       color: 0x0d1118, roughness: 0.3, clearcoat: 0.7, clearcoatRoughness: 0.1,
     }),
@@ -48,8 +50,11 @@ function createHaloMaterial() {
   return new THREE.ShaderMaterial({
     uniforms: { uColor: { value: HALO_COLOR.clone() }, uStrength: { value: 0.55 } },
     vertexShader: /* glsl */ `
+      attribute float aFade;
       varying float vFacing;
+      varying float vFade;
       void main() {
+        vFade = aFade;
         vec4 mv = modelViewMatrix * vec4(position + normal * ${HALO_WIDTH}, 1.0);
         vFacing = abs(dot(normalize(normalMatrix * normal), normalize(-mv.xyz)));
         gl_Position = projectionMatrix * mv;
@@ -58,8 +63,9 @@ function createHaloMaterial() {
       uniform vec3 uColor;
       uniform float uStrength;
       varying float vFacing;
+      varying float vFade;
       void main() {
-        gl_FragColor = vec4(uColor, pow(vFacing, 3.0) * uStrength);
+        gl_FragColor = vec4(uColor, pow(vFacing, 3.0) * uStrength * vFade);
       }`,
     transparent: true,
     depthWrite: false,

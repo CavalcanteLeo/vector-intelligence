@@ -3,7 +3,7 @@ import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { createNeuralBrain } from "./brain/neural-brain";
 import { createExpressions } from "./expressions";
-import { loadLogoTexture } from "./materials/logo-material";
+import { loadLogoTexture, loadMarkTexture } from "./materials/logo-material";
 import { setupModel } from "./model-setup";
 import { createStatusLights } from "./status-lights";
 import { createPointer } from "./pointer";
@@ -23,11 +23,13 @@ const pokePoint = new THREE.Vector2();
 /** Mounts the interactive mascot into `container`; resolves to a cleanup function. */
 export async function startMascotScene(container: HTMLElement, onReady: () => void) {
   const stage = createStage(container);
-  const draco = new DRACOLoader().setDecoderPath(DRACO_PATH).setDecoderConfig({ type: "wasm" });
+  const draco = new DRACOLoader().setDecoderPath(DRACO_PATH);
   const loader = new GLTFLoader().setDRACOLoader(draco);
-  const [gltf, logo] = await Promise.all([loader.loadAsync(MODEL_URL), loadLogoTexture()]).finally(() => draco.dispose());
+  const [gltf, chest, mark] = await Promise.all([
+    loader.loadAsync(MODEL_URL), loadLogoTexture(), loadMarkTexture(),
+  ]).finally(() => draco.dispose());
   const root = gltf.scene;
-  const model = setupModel(root, logo);
+  const model = setupModel(root, { chest, mark });
   stage.scene.add(root);
   const brain = createNeuralBrain(model.hemispheres, model.glass.signals);
   const canvas = stage.renderer.domElement;
@@ -68,7 +70,7 @@ export async function startMascotScene(container: HTMLElement, onReady: () => vo
     rig.update(delta, stage.camera, canvas, expression, motion);
     const status = statusLights.update(delta, pointer.state.away, motion);
     const level = 0.9 + (motion ? 0.08 * Math.sin(elapsed * 1.3) : 0) + happy * 0.25 + expression.surprise * 0.6;
-    model.light.setLevel(level * status.power, status.alert);
+    model.light.setLevel(level * status.power, Math.max(status.alert, expression.angry));
     root.updateMatrixWorld();
     brain.update(motion ? delta * status.brainSpeed : 0, stage.camera, pixelScale(), 1 + happy * 0.35 + curious * 0.5);
     stage.render();

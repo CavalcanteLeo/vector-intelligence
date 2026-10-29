@@ -166,7 +166,7 @@ def mouth_tube(points_px, radius_mid, radius_end, rings=96, sides=14):
     path = catmull_rom_open(xz, rings)
     p, n = face_point(path)
     t = np.linspace(0, 1, len(p))
-    radius = radius_end + (radius_mid - radius_end) * np.sin(np.pi * t) ** 0.7
+    radius = radius_end + (radius_mid - radius_end) * np.sin(np.pi * t) ** 1.2
     tangent = normalize(np.gradient(p, axis=0))
     binormal = normalize(np.cross(tangent, n))
     centre = p - n * radius[:, None] * 0.35
@@ -178,7 +178,8 @@ def mouth_tube(points_px, radius_mid, radius_end, rings=96, sides=14):
 
 
 def build_mouth(materials, parent):
-    verts, ring = mouth_tube(MOUTH_NEUTRAL_PX, 0.0065, 0.0035)
+    # crescent groove: thick in the middle, tapering to fine ends (reference art)
+    verts, ring = mouth_tube(MOUTH_NEUTRAL_PX, 0.013, 0.0025)
     smile, _ = mouth_tube(MOUTH_SMILE_PX, 0.016, 0.004)
     sad, _ = mouth_tube(MOUTH_SAD_PX, 0.006, 0.0035)
     wow, _ = mouth_tube(MOUTH_WOW_PX, 0.014, 0.008)

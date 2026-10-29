@@ -56,6 +56,54 @@ class SuperEgg:
         return np.stack([s * np.sin(theta), -s * np.cos(theta), c], -1)
 
 
+class ProfileSurface:
+    """Star-shaped surface from a traced front profile.
+
+    profile: (z, half-width) pairs for the front silhouette; depth(z) gives the
+    front-to-back half-depth (a rounder side profile, so the head never reads
+    as a can from the side). Each horizontal section is a superellipse.
+    point(d) casts a ray from the centre, so it is interchangeable with SuperEgg.
+    """
+
+    def __init__(self, center, profile, depth, q=2.2, samples=4000):
+        self.center = np.asarray(center, dtype=float)
+        z, w = np.asarray(sorted(profile), dtype=float).T
+        self._z = np.linspace(z[0], z[-1], samples)
+        self._w = np.interp(self._z, z, w)
+        self._d = np.minimum(depth(self._z), self._w * 1.2)
+        self.q = q
+
+    def half_width(self, z):
+        return np.interp(z, self._z, self._w, left=0.0, right=0.0)
+
+    def radius(self, theta, z):
+        """Horizontal distance from the axis to the surface at azimuth theta, height z."""
+        a = np.maximum(self.half_width(z), 1e-9)
+        b = np.maximum(np.interp(z, self._z, self._d, left=0.0, right=0.0), 1e-9)
+        return ((np.abs(np.sin(theta)) / a) ** self.q + (np.abs(np.cos(theta)) / b) ** self.q) ** (-1 / self.q)
+
+    def point(self, d):
+        d = normalize(d)
+        h = np.hypot(d[..., 0], d[..., 1])
+        theta = np.arctan2(d[..., 0], -d[..., 1])
+        lo = np.zeros(d.shape[:-1])
+        hi = np.full(d.shape[:-1], 3.0)
+        for _ in range(48):  # bisection: the ray leaves the surface exactly once
+            mid = (lo + hi) / 2
+            inside = mid * h < self.radius(theta, self.center[2] + mid * d[..., 2])
+            inside &= (self.center[2] + mid * d[..., 2] > self._z[0]) & (self.center[2] + mid * d[..., 2] < self._z[-1])
+            lo = np.where(inside, mid, lo)
+            hi = np.where(inside, hi, mid)
+        return self.center + d * ((lo + hi) / 2)[..., None]
+
+    def direction_at_height(self, theta, z):
+        """Direction whose surface point has height z at azimuth theta (0 = front)."""
+        theta, z = np.broadcast_arrays(np.asarray(theta, dtype=float), np.asarray(z, dtype=float))
+        r = self.radius(theta, z)
+        p = np.stack([r * np.sin(theta), -r * np.cos(theta), z], -1) - self.center
+        return normalize(p)
+
+
 class Chart:
     """Azimuthal equidistant chart of the unit sphere around axis n."""
 
@@ -92,7 +140,7 @@ def surface_normal(surface, chart, uv, eps=1e-4):
     return normalize(np.cross(pu, pv))
 
 
-def project(surface, chart, targets, axes=(0, 2), iterations=12):
+def project(surface, chart, targets, axes=(0, 2), iterations=40, max_step=0.15):
     """Find chart uv whose surface point matches targets on the given axes.
 
     Used to trace outlines from the orthographic reference straight onto
@@ -117,7 +165,10 @@ def project(surface, chart, targets, axes=(0, 2), iterations=12):
         det = np.where(np.abs(det) < 1e-9, 1e-9, det)
         step_u = (r[..., 0] * jv[..., 1] - r[..., 1] * jv[..., 0]) / det
         step_v = (ju[..., 0] * r[..., 1] - ju[..., 1] * r[..., 0]) / det
-        uv = uv - np.stack([step_u, step_v], -1)
+        step = np.stack([step_u, step_v], -1)
+        # damped Newton: never jump across the surface (flat-ish regions)
+        norm = np.linalg.norm(step, axis=-1, keepdims=True)
+        uv = uv - step * np.minimum(1.0, max_step / np.maximum(norm, 1e-12))
     return uv
 
 
