@@ -40,6 +40,8 @@ def build():
         getattr(__import__(f"scripts.mascot.{module}", fromlist=[fn]), fn)(materials, head, body)
 
 
+COPYRIGHT = "© 2026 Leonardo Cavalcante. All rights reserved."
+
 # Geometry compression (decoded in the browser by three's DRACOLoader).
 # Quantization is high enough to be visually lossless on the glossy shells.
 DRACO = dict(
@@ -110,7 +112,7 @@ def main():
     bpy.ops.export_scene.gltf(filepath=GLB, export_format="GLB", export_cameras=False,
                               export_lights=False, export_extras=True, export_morph=True,
                               export_morph_normal=False, export_vertex_color="ACTIVE",
-                              export_apply=True, **DRACO)
+                              export_apply=True, export_copyright=COPYRIGHT, **DRACO)
     if "--preview" in sys.argv:
         render_previews()
     print("MASCOT_EXPORT", GLB)

@@ -1,0 +1,14 @@
+Copyright (c) 2026 Leonardo Cavalcante. All rights reserved.
+
+This repository and all of its contents, including source code, the
+Vector Intelligence mascot (3D models, Blender sources and build scripts,
+textures, previews and runtime code), images and other assets, are the
+exclusive intellectual property of Leonardo Cavalcante.
+
+No license is granted. You may not copy, modify, distribute, publish,
+sublicense, sell or otherwise use any part of this repository, in whole
+or in part, without prior written permission from Leonardo Cavalcante.
+
+Third-party dependencies (for example those listed in package.json and
+the Draco decoder in public/assets/draco, from three.js) remain under
+their own licenses.

@@ -2,6 +2,8 @@
   "name": "vector-intelligence",
   "version": "0.1.0",
   "private": true,
+  "license": "UNLICENSED",
+  "author": "Leonardo Cavalcante",
   "scripts": {
     "dev": "next dev -p 3030",
     "build": "next build",
