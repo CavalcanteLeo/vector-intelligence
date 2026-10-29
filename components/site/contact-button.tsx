@@ -38,6 +38,7 @@ export function ContactButton({
         className={className}
         onClick={openEmail}
         disabled={state === "loading"}
+        data-mascot-mood="happy"
       >
         {state === "loading" ? "Opening email…" : label}
         <ArrowUpRight aria-hidden="true" className="ml-2 size-4" />
