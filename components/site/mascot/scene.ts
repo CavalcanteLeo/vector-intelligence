@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { createNeuralBrain } from "./brain/neural-brain";
 import { createExpressions } from "./expressions";
@@ -10,6 +11,8 @@ import { createRig } from "./rig";
 import { createStage } from "./stage";
 
 const MODEL_URL = "/assets/models/vector-intelligence-mascot-v2.glb";
+// Draco-compressed geometry; decoder copied from three/examples/jsm/libs/draco/gltf
+const DRACO_PATH = "/assets/draco/";
 const WARM_UP_STEPS = 90;
 const raycaster = new THREE.Raycaster();
 // only solid meshes count as the robot: skip the neural points and wires
@@ -20,7 +23,9 @@ const pokePoint = new THREE.Vector2();
 /** Mounts the interactive mascot into `container`; resolves to a cleanup function. */
 export async function startMascotScene(container: HTMLElement, onReady: () => void) {
   const stage = createStage(container);
-  const [gltf, logo] = await Promise.all([new GLTFLoader().loadAsync(MODEL_URL), loadLogoTexture()]);
+  const draco = new DRACOLoader().setDecoderPath(DRACO_PATH).setDecoderConfig({ type: "wasm" });
+  const loader = new GLTFLoader().setDRACOLoader(draco);
+  const [gltf, logo] = await Promise.all([loader.loadAsync(MODEL_URL), loadLogoTexture()]).finally(() => draco.dispose());
   const root = gltf.scene;
   const model = setupModel(root, logo);
   stage.scene.add(root);

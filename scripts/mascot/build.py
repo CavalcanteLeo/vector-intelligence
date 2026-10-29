@@ -4,7 +4,8 @@
 
 Outputs:
     assets/mascot/vector-intelligence-mascot-v2.blend   (editable source)
-    public/assets/models/vector-intelligence-mascot-v2.glb (web asset)
+    public/assets/models/vector-intelligence-mascot-v2.glb (web asset, Draco-compressed;
+        decoder in public/assets/draco, copied from three/examples/jsm/libs/draco/gltf)
     assets/mascot/previews/*.png                         (with --preview)
 """
 import math
@@ -38,6 +39,18 @@ def build():
     for module, fn in PARTS:
         getattr(__import__(f"scripts.mascot.{module}", fromlist=[fn]), fn)(materials, head, body)
 
+
+# Geometry compression (decoded in the browser by three's DRACOLoader).
+# Quantization is high enough to be visually lossless on the glossy shells.
+DRACO = dict(
+    export_draco_mesh_compression_enable=True,
+    export_draco_mesh_compression_level=10,
+    export_draco_position_quantization=16,
+    export_draco_normal_quantization=12,
+    export_draco_texcoord_quantization=14,
+    export_draco_color_quantization=10,
+    export_draco_generic_quantization=14,
+)
 
 # Optional parts are registered here as they are implemented.
 PARTS = [
@@ -97,7 +110,7 @@ def main():
     bpy.ops.export_scene.gltf(filepath=GLB, export_format="GLB", export_cameras=False,
                               export_lights=False, export_extras=True, export_morph=True,
                               export_morph_normal=False, export_vertex_color="ACTIVE",
-                              export_apply=True)
+                              export_apply=True, **DRACO)
     if "--preview" in sys.argv:
         render_previews()
     print("MASCOT_EXPORT", GLB)
