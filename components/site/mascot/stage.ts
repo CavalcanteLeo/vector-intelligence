@@ -11,11 +11,20 @@ const FOV = 28;
 
 export type Stage = ReturnType<typeof createStage>;
 
+/** Background colour of the nearest ancestor that paints one, so the canvas blends in. */
+function pageBackground(element: HTMLElement | null) {
+  for (; element; element = element.parentElement) {
+    const color = getComputedStyle(element).backgroundColor;
+    if (color && color !== "transparent" && !color.startsWith("rgba(0, 0, 0, 0")) return color;
+  }
+  return "#ffffff";
+}
+
 export function createStage(container: HTMLElement) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  // White page background must stay exactly white, so no tone mapping:
+  // The page background must match exactly, so no tone mapping:
   // materials stay within range and only emissive light exceeds 1 (bloom).
   renderer.toneMapping = THREE.NoToneMapping;
   renderer.domElement.className = "absolute inset-0 size-full touch-pan-y cursor-grab active:cursor-grabbing";
@@ -23,7 +32,8 @@ export function createStage(container: HTMLElement) {
   container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xffffff);
+  const background = new THREE.Color(pageBackground(container));
+  scene.background = background;
   const environment = createStudioEnvironment(renderer);
   scene.environment = environment.texture;
   scene.environmentIntensity = 0.85;
@@ -46,6 +56,7 @@ export function createStage(container: HTMLElement) {
   function resize() {
     const { width, height } = container.getBoundingClientRect();
     if (!width || !height) return;
+    background.setStyle(pageBackground(container));
     const aspect = width / height;
     const tan = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
     const distance = Math.max(FRAME.height / 2 / tan, FRAME.width / 2 / (tan * aspect));

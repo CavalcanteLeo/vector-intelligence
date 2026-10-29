@@ -6,7 +6,7 @@ export function Hero() {
   return (
     <section
       aria-labelledby="hero-title"
-      className="grid min-h-[620px] overflow-hidden bg-white md:grid-cols-2"
+      className="grid min-h-[620px] overflow-hidden bg-[#eef2f7] md:grid-cols-2"
     >
       <div className="hero-copy relative z-10 flex flex-col items-start justify-center px-6 py-14 sm:px-8 md:px-10 lg:px-14 xl:px-20">
         <h1
@@ -32,7 +32,7 @@ export function Hero() {
         </div>
       </div>
 
-      <div className="relative min-h-[360px] overflow-hidden bg-white min-[421px]:min-h-[430px] md:min-h-[620px]">
+      <div className="relative min-h-[360px] overflow-hidden min-[421px]:min-h-[430px] md:min-h-[620px]">
         <Mascot3D />
       </div>
     </section>
