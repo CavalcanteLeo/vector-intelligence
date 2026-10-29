@@ -4,6 +4,7 @@ import { ArrowUpRight, Bot, Code2, RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { services } from "@/lib/site-content";
+import { ScrollReveal } from "./scroll-reveal";
 
 const icons = [Code2, RefreshCw, Bot];
 const tones = ["service-blue", "service-cyan", "service-violet"];
@@ -11,7 +12,7 @@ const tones = ["service-blue", "service-cyan", "service-violet"];
 export function Expertise() {
   return (
     <section id="expertise" aria-labelledby="expertise-title" className="bg-white pt-16 pb-24 md:pt-20 md:pb-32">
-      <div className="page-shell">
+      <ScrollReveal className="page-shell">
         <div className="mb-9 flex flex-wrap items-end justify-between gap-5">
           <h2 id="expertise-title" className="section-title max-w-[700px]">
             From ambition to working software
@@ -25,7 +26,7 @@ export function Expertise() {
         <Tabs defaultValue="engineering" className="gap-5">
           <TabsList
             aria-label="Explore our expertise"
-            className="grid h-auto w-full grid-cols-1 gap-3 bg-transparent p-0 md:grid-cols-3"
+            className="grid h-auto w-full grid-cols-1 gap-3 bg-transparent p-0 group-data-horizontal/tabs:h-auto md:grid-cols-3"
           >
             {services.map((service, index) => {
               const Icon = icons[index];
@@ -78,7 +79,7 @@ export function Expertise() {
             </TabsContent>
           ))}
         </Tabs>
-      </div>
+      </ScrollReveal>
     </section>
   );
 }

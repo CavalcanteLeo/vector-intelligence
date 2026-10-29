@@ -44,7 +44,7 @@ export function ContactButton({
       </Button>
       {state === "error" && (
         <span role="alert" className="text-sm text-red-700">
-          Email could not open. Please try again.
+          We couldn’t prepare the email link. Please try again.
         </span>
       )}
     </span>
